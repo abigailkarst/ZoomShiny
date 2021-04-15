@@ -46,18 +46,39 @@ ui <- fluidPage(
 # Define server logic to read selected file ----
 server <- function(input, output) {
   
-  ## Make reactive here
+  ## Reactive values
+  re <- reactiveValues()
+  re$df <- reactive({
+    data_re <- zoomVTTtoDF(input$file1$datapath)
+    return(data_re)
+  })
   
   output$totaltimeplot <- renderPlot({
-    #req(input$file1)
-    TotalSpokenPlot(input$file1$datapath)
+    
+    #get rid of "con" error in connection warning before reactive value is made
+    if (is.null(input$file1$datapath))
+      return(NULL)
+    
+      re$df() %>%
+      group_by(speaker) %>% 
+      transmute(Total = sum(duration_seconds)) %>%
+      distinct() %>% 
+      
+      ggplot(aes(x = speaker, y = Total)) + 
+        ggtitle("Total Time Spoken") +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        geom_bar(stat = "identity") +
+        scale_fill_brewer(palette = "Set1") + #why is color palette not working?
+        theme(axis.text.x=element_text(angle = 90, hjust = 1,vjust = 0.5))
+    
   })
 
   output$contents <- renderTable({
     
-    #req(input$file1)
+    if (is.null(input$file1$datapath))
+      return(NULL)
     
-    DF <- zoomVTTtoDF(input$file1$datapath)
+    DF <- re$df()
     
     if(input$disp == "head") {
       return(head(DF))
@@ -65,11 +86,15 @@ server <- function(input, output) {
     else {
       return(DF)
     }
+    
   })
   
   output$exampleplot <- renderPlot({
     
-    zoomVTTtoDF(input$file1$datapath) %>%
+    if (is.null(input$file1$datapath))
+      return(NULL)
+    
+    re$df() %>%
       mutate(length_nested = list(1:max(end_seconds))) %>% 
       unnest(length_nested) %>% 
       mutate(spoken_second = length_nested > start_seconds &
