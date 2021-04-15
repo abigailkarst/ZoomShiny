@@ -1,4 +1,4 @@
-zoomVTTtoDF <- function(file, start_date_time) {
+zoomVTTtoDF <- function(file) {
   require(tibble)
   require(dplyr)
   require(lubridate)
@@ -45,3 +45,23 @@ zoomVTTtoDF <- function(file, start_date_time) {
   return(df)
   
 }
+
+TotalSpokenPlot <- function(dataframe){
+  library(tidyverse)
+  library(ggplot2)
+  
+  plotdata <- zoomVTTtoDF(file = dataframe) %>%
+    group_by(speaker) %>% 
+    transmute(Total=sum(duration_seconds)) %>%
+    distinct()
+  
+  totalplot <- ggplot(plotdata, aes(x = speaker, y = Total)) + 
+    ggtitle("Total Time Spoken") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    geom_bar(stat = "identity") +
+    scale_fill_brewer(palette = "Set1") +
+    theme(axis.text.x=element_text(angle = 90, hjust = 1,vjust = 0.5))
+  
+  return(totalplot)
+}
+

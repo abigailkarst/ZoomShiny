@@ -1,5 +1,6 @@
 
 library(shiny)
+source("00-Functions.R")
 
 # Define UI for data upload app ----
 ui <- fluidPage(
@@ -17,33 +18,7 @@ ui <- fluidPage(
       fileInput("file1", "Choose vtt File",
                 multiple = FALSE,
                 accept = c("text/vtt",
-                           "text/comma-separated-values,text/plain",
                            ".vtt")),
-      # fileInput("file1", "Choose CSV File",
-      #           multiple = FALSE,
-      #           accept = c("text/csv",
-      #                    "text/comma-separated-values,text/plain",
-      #                    ".csv")),
-
-      # Horizontal line ----
-      tags$hr(),
-
-      # Input: Checkbox if file has header ----
-      checkboxInput("header", "Header", TRUE),
-
-      # Input: Select separator ----
-      radioButtons("sep", "Separator",
-                   choices = c(Comma = ",",
-                               Semicolon = ";",
-                               Tab = "\t"),
-                   selected = ","),
-
-      # Input: Select quotes ----
-      radioButtons("quote", "Quote",
-                   choices = c(None = "",
-                               "Double Quote" = '"',
-                               "Single Quote" = "'"),
-                   selected = '"'),
 
       # Horizontal line ----
       tags$hr(),
@@ -58,10 +33,10 @@ ui <- fluidPage(
 
     # Main panel for displaying outputs ----
     mainPanel(
-
+      plotOutput("totaltimeplot"),
+    
       # Output: Data file ----
       tableOutput("contents")
-
     )
 
   )
@@ -69,40 +44,26 @@ ui <- fluidPage(
 
 # Define server logic to read selected file ----
 server <- function(input, output) {
-
-  output$contents <- renderTable({
-
-    # input$file1 will be NULL initially. After the user selects
-    # and uploads a file, head of that data file by default,
-    # or all rows if selected, will be shown.
-
-    req(input$file1)
-
-    # when reading semicolon separated files,
-    # having a comma separator causes `read.csv` to error
-    tryCatch(
-      {
-        df <- readLines(input$file1$datapath)
-        # df <- read.csv(input$file1$datapath,
-        #          header = input$header,
-        #          sep = input$sep,
-        #          quote = input$quote)
-      },
-      error = function(e) {
-        # return a safeError if a parsing error occurs
-        stop(safeError(e))
-      }
-    )
-
-    if(input$disp == "head") {
-      return(head(df))
-    }
-    else {
-      return(df)
-    }
-
+  
+  output$totaltimeplot <- renderPlot({
+    #req(input$file1)
+    TotalSpokenPlot(input$file1$datapath)
   })
 
+  output$contents <- renderTable({
+    
+    #req(input$file1)
+    
+    DF <- zoomVTTtoDF(input$file1$datapath)
+    
+    if(input$disp == "head") {
+      return(head(DF))
+    }
+    else {
+      return(DF)
+    }
+  })
+  
 }
 
 # Create Shiny app ----
