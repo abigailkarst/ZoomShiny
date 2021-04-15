@@ -52,7 +52,7 @@ TotalSpokenPlot <- function(dataframe){
   
   plotdata <- zoomVTTtoDF(file = dataframe) %>%
     group_by(speaker) %>% 
-    transmute(Total=sum(duration_seconds)) %>%
+    transmute(Total = sum(duration_seconds)) %>%
     distinct()
   
   totalplot <- ggplot(plotdata, aes(x = speaker, y = Total)) + 

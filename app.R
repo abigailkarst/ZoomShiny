@@ -1,5 +1,5 @@
-
 library(shiny)
+library(tidyverse)
 source("00-Functions.R")
 
 # Define UI for data upload app ----
@@ -34,6 +34,7 @@ ui <- fluidPage(
     # Main panel for displaying outputs ----
     mainPanel(
       plotOutput("totaltimeplot"),
+      plotOutput("exampleplot"),
     
       # Output: Data file ----
       tableOutput("contents")
@@ -44,6 +45,8 @@ ui <- fluidPage(
 
 # Define server logic to read selected file ----
 server <- function(input, output) {
+  
+  ## Make reactive here
   
   output$totaltimeplot <- renderPlot({
     #req(input$file1)
@@ -62,6 +65,24 @@ server <- function(input, output) {
     else {
       return(DF)
     }
+  })
+  
+  output$exampleplot <- renderPlot({
+    
+    zoomVTTtoDF(input$file1$datapath) %>%
+      mutate(length_nested = list(1:max(end_seconds))) %>% 
+      unnest(length_nested) %>% 
+      mutate(spoken_second = length_nested > start_seconds &
+               length_nested < end_seconds) %>% 
+      filter(spoken_second) %>% 
+      
+      ggplot(aes(length_nested, speaker, fill = speaker)) +
+      geom_tile() +
+      theme_minimal() +
+      theme(legend.position = "none") +
+      labs(x = "Seconds Speaking",
+           y = "Speaker")
+    
   })
   
 }
