@@ -1,4 +1,5 @@
 library(shiny)
+library(DemografixeR)
 library(tidyverse)
 source("00-Functions.R")
 
@@ -35,6 +36,7 @@ ui <- fluidPage(
     mainPanel(
       plotOutput("totaltimeplot"),
       plotOutput("exampleplot"),
+      plotOutput("genderplot"),
     
       # Output: Data file ----
       tableOutput("contents")
@@ -64,30 +66,16 @@ server <- function(input, output) {
       transmute(Total = sum(duration_seconds)) %>%
       distinct() %>% 
       
-      ggplot(aes(x = speaker, y = Total)) + 
+      ggplot(aes(x = speaker, y = Total, fill = speaker)) + 
+        theme_minimal() +
+        theme(legend.position = "none") +
         ggtitle("Total Time Spoken") +
         theme(plot.title = element_text(hjust = 0.5)) +
         geom_bar(stat = "identity") +
-        scale_fill_brewer(palette = "Set1") + #why is color palette not working?
         theme(axis.text.x=element_text(angle = 90, hjust = 1,vjust = 0.5))
     
   })
 
-  output$contents <- renderTable({
-    
-    if (is.null(input$file1$datapath))
-      return(NULL)
-    
-    DF <- re$df()
-    
-    if(input$disp == "head") {
-      return(head(DF))
-    }
-    else {
-      return(DF)
-    }
-    
-  })
   
   output$exampleplot <- renderPlot({
     
@@ -102,11 +90,51 @@ server <- function(input, output) {
       filter(spoken_second) %>% 
       
       ggplot(aes(length_nested, speaker, fill = speaker)) +
-      geom_tile() +
+      geom_tile() + 
       theme_minimal() +
       theme(legend.position = "none") +
       labs(x = "Seconds Speaking",
-           y = "Speaker")
+           y = "Speaker") 
+    
+  })
+  
+  output$genderplot <- renderPlot({
+    if (is.null(input$file1$datapath))
+      return(NULL)
+    
+    df <- re$df()
+    
+    df$firstNames <- gsub("([A-Za-z]+).*", "\\1", df$speaker)
+    df$gender <- genderize(df$firstNames)
+    
+    df %>%
+      group_by(gender) %>%
+      transmute(gTotal = sum(duration_seconds)) %>%
+      ggplot(aes(x = gender, y = gTotal, fill = gender)) + 
+      theme(legend.position = "none") +
+      ggtitle("Total Time Spoken by Gender") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      xlab("Gender of Speaker") + 
+      ylab("Time Spoken in Seconds") +
+      geom_bar(stat = "identity") +
+      scale_fill_manual(values = c("pink", "lightblue")) + #why is color palette not working?
+      theme(axis.text.x=element_text(angle = 90, hjust = 1,vjust = 0.5))
+    
+  })
+  
+  output$contents <- renderTable({
+    
+    if (is.null(input$file1$datapath))
+      return(NULL)
+    
+    DF <- re$df()
+    
+    if(input$disp == "head") {
+      return(head(DF))
+    }
+    else {
+      return(DF)
+    }
     
   })
   
